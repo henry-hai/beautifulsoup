@@ -994,74 +994,95 @@ class BeautifulSoup(Tag):
         return most_recently_popped
 
     def handle_starttag(
-        self,
-        name: str,
-        namespace: Optional[str],
-        nsprefix: Optional[str],
-        attrs: _RawAttributeValues,
-        sourceline: Optional[int] = None,
-        sourcepos: Optional[int] = None,
-        namespaces: Optional[Dict[str, str]] = None,
-    ) -> Optional[Tag]:
-        """Called by the tree builder when a new tag is encountered.
-
-        :param name: Name of the tag.
-        :param nsprefix: Namespace prefix for the tag.
-        :param attrs: A dictionary of attribute values. Note that
-           attribute values are expected to be simple strings; processing
-           of multi-valued attributes such as "class" comes later.
-        :param sourceline: The line number where this tag was found in its
-            source document.
-        :param sourcepos: The character position within `sourceline` where this
-            tag was found.
-        :param namespaces: A dictionary of all namespace prefix mappings
-            currently in scope in the document.
-
-        If this method returns None, the tag was rejected by an active
-        `ElementFilter`. You should proceed as if the tag had not occurred
-        in the document. For instance, if this was a self-closing tag,
-        don't call handle_endtag.
-
-        :meta private:
-        """
-        # print("Start tag %s: %s" % (name, attrs))
-        self.endData()
-
-        if (
-            self.parse_only
-            and len(self.tagStack) <= 1
-            and not self.parse_only.allow_tag_creation(nsprefix, name, attrs)
-        ):
-            return None
-
-        # Apply tag replacement if replacer is specified
-        if self.replacer and self.replacer.should_replace(name):
-            name = self.replacer.get_replacement_tag()
-
-        tag_class = self.element_classes.get(Tag, Tag)
-        # Assume that this is either Tag or a subclass of Tag. If not,
-        # the user brought type-unsafety upon themselves.
-        tag_class = cast(Type[Tag], tag_class)
-        tag = tag_class(
             self,
-            self.builder,
-            name,
-            namespace,
-            nsprefix,
-            attrs,
-            self.currentTag,
-            self._most_recent_element,
-            sourceline=sourceline,
-            sourcepos=sourcepos,
-            namespaces=namespaces,
-        )
-        if tag is None:
+            name: str,
+            namespace: Optional[str],
+            nsprefix: Optional[str],
+            attrs: _RawAttributeValues,
+            sourceline: Optional[int] = None,
+            sourcepos: Optional[int] = None,
+            namespaces: Optional[Dict[str, str]] = None,
+        ) -> Optional[Tag]:
+            """Called by the tree builder when a new tag is encountered.
+
+            :param name: Name of the tag.
+            :param nsprefix: Namespace prefix for the tag.
+            :param attrs: A dictionary of attribute values. Note that
+            attribute values are expected to be simple strings; processing
+            of multi-valued attributes such as "class" comes later.
+            :param sourceline: The line number where this tag was found in its
+                source document.
+            :param sourcepos: The character position within `sourceline` where this
+                tag was found.
+            :param namespaces: A dictionary of all namespace prefix mappings
+                currently in scope in the document.
+
+            If this method returns None, the tag was rejected by an active
+            `ElementFilter`. You should proceed as if the tag had not occurred
+            in the document. For instance, if this was a self-closing tag,
+            don't call handle_endtag.
+
+            :meta private:
+            """
+            # print("Start tag %s: %s" % (name, attrs))
+            self.endData()
+
+            if (
+                self.parse_only
+                and len(self.tagStack) <= 1
+                and not self.parse_only.allow_tag_creation(nsprefix, name, attrs)
+            ):
+                return None
+
+            tag_class = self.element_classes.get(Tag, Tag)
+            # Assume that this is either Tag or a subclass of Tag. If not,
+            # the user brought type-unsafety upon themselves.
+            tag_class = cast(Type[Tag], tag_class)
+            tag = tag_class(
+                self,
+                self.builder,
+                name,
+                namespace,
+                nsprefix,
+                attrs,
+                self.currentTag,
+                self._most_recent_element,
+                sourceline=sourceline,
+                sourcepos=sourcepos,
+                namespaces=namespaces,
+            )
+            if tag is None:
+                return tag
+                
+            # --- NEW M3 SoupReplacer Logic ---
+            if self.replacer:
+                
+                # Apply M2-style replacement (for backward compatibility)
+                if self.replacer.og_tag is not None and tag.name == self.replacer.og_tag:
+                    tag.name = self.replacer.alt_tag
+
+                # Apply M3 name_xformer
+                if self.replacer.name_xformer:
+                    new_name = self.replacer.name_xformer(tag)
+                    if new_name is not None:
+                        tag.name = new_name
+                
+                # Apply M3 attrs_xformer
+                if self.replacer.attrs_xformer:
+                    new_attrs = self.replacer.attrs_xformer(tag)
+                    if new_attrs is not None:
+                        tag.attrs = new_attrs
+                
+                # Apply M3 xformer (for side-effects)
+                if self.replacer.xformer:
+                    self.replacer.xformer(tag) # This function returns nothing
+            # --- End of M3 Logic ---
+                
+            if self._most_recent_element is not None:
+                self._most_recent_element.next_element = tag
+            self._most_recent_element = tag
+            self.pushTag(tag)
             return tag
-        if self._most_recent_element is not None:
-            self._most_recent_element.next_element = tag
-        self._most_recent_element = tag
-        self.pushTag(tag)
-        return tag
 
     def handle_endtag(self, name: str, nsprefix: Optional[str] = None) -> None:
         """Called by the tree builder when an ending tag is encountered.

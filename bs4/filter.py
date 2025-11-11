@@ -689,29 +689,47 @@ class SoupReplacer:
     that happen during parsing rather than after, which is more memory efficient
     for large documents.
     
+    M2 Constructor:
     :param og_tag: The original tag name to replace
     :param alt_tag: The alternative tag name to replace with
+    
+    M3 Constructor:
+    :param name_xformer: A function that takes a tag and returns a new tag name.
+    :param attrs_xformer: A function that takes a tag and returns a new attrs dict.
+    :param xformer: A function that takes a tag and modifies it in-place.
     """
     
-    def __init__(self, og_tag: str, alt_tag: str):
-        """Initialize SoupReplacer with original and alternative tag names.
+    def __init__(self, og_tag: str = None, alt_tag: str = None, 
+                 name_xformer: Callable[[Tag], str] = None, 
+                 attrs_xformer: Callable[[Tag], dict] = None, 
+                 xformer: Callable[[Tag], None] = None):
+        """Initialize SoupReplacer.
         
-        :param og_tag: The original tag name to replace
-        :param alt_tag: The alternative tag name to replace with
+        This constructor supports both M2-style (og_tag, alt_tag) and
+        M3-style (xformer) arguments.
         """
+        # M2 properties
         self.og_tag = og_tag
         self.alt_tag = alt_tag
+        
+        # M3 properties
+        self.name_xformer = name_xformer
+        self.attrs_xformer = attrs_xformer
+        self.xformer = xformer
+    
+    # --- M2 Methods ---
+    # We keep these methods for full backward compatibility.
     
     def should_replace(self, tag_name: str) -> bool:
-        """Check if a tag should be replaced.
+        """Check if a tag should be replaced (M2-style).
         
         :param tag_name: The name of the tag to check
         :return: True if the tag should be replaced, False otherwise
         """
-        return tag_name == self.og_tag
+        return tag_name == self.og_tag and self.og_tag is not None
     
     def get_replacement_tag(self) -> str:
-        """Get the replacement tag name.
+        """Get the replacement tag name (M2-style).
         
         :return: The replacement tag name
         """
