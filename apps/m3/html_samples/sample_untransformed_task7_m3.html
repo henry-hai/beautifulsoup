@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <title>
+   Small Demo Site
+  </title>
+  <meta content="A tiny test page for task7" name="description"/>
+  <style>
+   body { font-family: sans-serif; }
+    .lead { font-weight: 600; }
+  </style>
+ </head>
+ <body>
+  <header>
+   <h1>
+    Welcome to the Demo
+   </h1>
+   <p class="paragraph">
+    This header paragraph has no class.
+   </p>
+  </header>
+  <main>
+   <section id="intro">
+    <p class="lead paragraph">
+     This paragraph already has a class 'lead'.
+    </p>
+    <p class="paragraph">
+     Another paragraph, plain and waiting for the 'paragraph' class.
+    </p>
+    <div>
+     <p class="paragraph" id="nested">
+      Nested paragraph inside a div.
+     </p>
+    </div>
+   </section>
+   <section id="items">
+    <ul>
+     <li>
+      <p class="paragraph">
+       List item paragraph one.
+      </p>
+     </li>
+     <li>
+      <p class="note small paragraph">
+       List item paragraph two with two classes.
+      </p>
+     </li>
+    </ul>
+   </section>
+  </main>
+  <footer>
+   <p class="paragraph">
+    Footer paragraph.
+   </p>
+  </footer>
+ </body>
+</html>
